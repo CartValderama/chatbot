@@ -1,0 +1,296 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useChatbotStore } from "@/lib/store";
+import { ChatbotConfig, Message } from "@/lib/types/types";
+
+interface ChatUIProps {
+  chatbot: ChatbotConfig;
+}
+
+export default function ChatUI({ chatbot }: ChatUIProps) {
+  const [message, setMessage] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [apiStatus, setApiStatus] = useState<"unknown" | "connected" | "error">(
+    "unknown"
+  );
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const { addMessage, getMessages } = useChatbotStore();
+  const messages = getMessages(chatbot.id);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Check API status on component mount
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        const response = await fetch("/api/chat", { method: "GET" });
+        const data = await response.json();
+        setApiStatus(data.status === "healthy" ? "connected" : "error");
+      } catch (error) {
+        setApiStatus("error");
+      }
+    };
+
+    checkApiStatus();
+  }, []);
+
+  useEffect(() => {
+    // Initialize speech recognition
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).webkitSpeechRecognition ||
+        (window as any).SpeechRecognition;
+
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = "en-US";
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setMessage(transcript);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+    }
+  }, []);
+
+  const startListening = () => {
+    if (recognitionRef.current) {
+      setIsListening(true);
+      recognitionRef.current.start();
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  const generateBotResponse = async (userMessage: string): Promise<string> => {
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          chatbot: chatbot,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Check if there was an API error but still got a response
+      if (data.error) {
+        console.warn("Chatbot API warning:", data.error);
+      }
+
+      return (
+        data.response ||
+        `I'm sorry, ${chatbot.elderlyName}, I didn't receive a proper response. Please try asking your question again.`
+      );
+    } catch (error) {
+      console.error("Error calling chat API:", error);
+      // Enhanced fallback response
+      return `I'm sorry, ${chatbot.elderlyName}, I'm having trouble connecting to my knowledge base right now. This might be due to network issues or API configuration. Please try again in a moment, or contact your caregiver for assistance.`;
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+
+    // Add user message
+    addMessage(chatbot.id, {
+      content: message.trim(),
+      sender: "user",
+    });
+
+    const userMessage = message.trim();
+    setMessage("");
+    setIsTyping(true);
+
+    try {
+      // Call the API to get bot response
+      const botResponse = await generateBotResponse(userMessage);
+
+      // Add a small delay for better UX (simulating thinking time)
+      setTimeout(() => {
+        addMessage(chatbot.id, {
+          content: botResponse,
+          sender: "bot",
+        });
+        setIsTyping(false);
+      }, 500 + Math.random() * 1000);
+    } catch (error) {
+      console.error("Error generating bot response:", error);
+      setTimeout(() => {
+        addMessage(chatbot.id, {
+          content: `I'm sorry, ${chatbot.elderlyName}, I'm having trouble responding right now. Please try again in a moment.`,
+          sender: "bot",
+        });
+        setIsTyping(false);
+      }, 500);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* API Status Indicator */}
+      {apiStatus === "error" && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <span className="text-yellow-400">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                External AI service is not connected. Using basic responses.
+                Please check your API configuration.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="text-center py-8">
+            <div className="bg-blue-50 rounded-lg p-6 max-w-md mx-auto">
+              <h3 className="text-lg font-medium text-blue-900 mb-2">
+                Hello, {chatbot.elderlyName}!
+              </h3>
+              <p className="text-blue-700">
+                I&apos;m your virtual caregiver. I can help you with medication
+                reminders, appointment information, and daily routine
+                assistance. Feel free to ask me anything!
+              </p>
+            </div>
+          </div>
+        )}
+
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex ${
+              msg.sender === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                msg.sender === "user"
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-gray-900"
+              }`}
+            >
+              <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p
+                className={`text-xs mt-1 ${
+                  msg.sender === "user" ? "text-blue-100" : "text-gray-500"
+                }`}
+              >
+                {new Date(msg.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-gray-100 rounded-lg px-4 py-2">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div
+                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-gray-200 p-4">
+        <div className="flex space-x-2">
+          <div className="flex-1 relative">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={`Type a message to ${chatbot.elderlyName}'s caregiver...`}
+              className="w-full resize-none border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              rows={1}
+              style={{ minHeight: "40px", maxHeight: "120px" }}
+            />
+          </div>
+
+          {/* Voice Input Button */}
+          {typeof window !== "undefined" &&
+            ((window as any).webkitSpeechRecognition ||
+              (window as any).SpeechRecognition) && (
+              <button
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isListening
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {isListening ? "⏹️" : "🎤"}
+              </button>
+            )}
+
+          <button
+            onClick={handleSendMessage}
+            disabled={!message.trim() || isTyping}
+            className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
