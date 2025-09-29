@@ -1,16 +1,9 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useChatbotStore } from "@/lib/store";
-import { ChatbotConfig, Medication, Appointment } from "@/lib/types/types";
-
-interface FormData {
-  elderlyName: string;
-  medications: Medication[];
-  appointments: Appointment[];
-  notes: string;
-}
+import { Medication, Appointment } from "@/lib/types/types";
 
 export default function CareForm() {
   const router = useRouter();
@@ -18,29 +11,75 @@ export default function CareForm() {
   const editId = searchParams.get("id");
 
   const { addChatbot, updateChatbot, getChatbot } = useChatbotStore();
-
   const existingChatbot = editId ? getChatbot(editId) : null;
 
-  const form = useForm({
-    defaultValues: {
-      elderlyName: existingChatbot?.elderlyName || "",
-      medications: existingChatbot?.medications || [],
-      appointments: existingChatbot?.appointments || [],
-      notes: existingChatbot?.notes || "",
-    },
-    onSubmit: async ({ value }) => {
-      const validMedications = value.medications.filter(
+  // Form state
+  const [elderlyName, setElderlyName] = useState(existingChatbot?.elderlyName || "");
+  const [medications, setMedications] = useState<Medication[]>(existingChatbot?.medications || []);
+  const [appointments, setAppointments] = useState<Appointment[]>(existingChatbot?.appointments || []);
+  const [notes, setNotes] = useState(existingChatbot?.notes || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const addMedication = () => {
+    const newMedication: Medication = {
+      id: crypto.randomUUID(),
+      name: "",
+      time: "",
+      dosage: "",
+    };
+    setMedications([...medications, newMedication]);
+  };
+
+  const updateMedication = (index: number, field: keyof Medication, value: string) => {
+    const updated = medications.map((med, i) =>
+      i === index ? { ...med, [field]: value } : med
+    );
+    setMedications(updated);
+  };
+
+  const removeMedication = (index: number) => {
+    setMedications(medications.filter((_, i) => i !== index));
+  };
+
+  const addAppointment = () => {
+    const newAppointment: Appointment = {
+      id: crypto.randomUUID(),
+      title: "",
+      date: "",
+      time: "",
+      location: "",
+    };
+    setAppointments([...appointments, newAppointment]);
+  };
+
+  const updateAppointment = (index: number, field: keyof Appointment, value: string) => {
+    const updated = appointments.map((apt, i) =>
+      i === index ? { ...apt, [field]: value } : apt
+    );
+    setAppointments(updated);
+  };
+
+  const removeAppointment = (index: number) => {
+    setAppointments(appointments.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const validMedications = medications.filter(
         (med) => med.name.trim() && med.time.trim()
       );
-      const validAppointments = value.appointments.filter(
+      const validAppointments = appointments.filter(
         (apt) => apt.title.trim() && apt.date.trim() && apt.time.trim()
       );
 
       const chatbotData = {
-        elderlyName: value.elderlyName.trim(),
+        elderlyName: elderlyName.trim(),
         medications: validMedications,
         appointments: validAppointments,
-        notes: value.notes.trim(),
+        notes: notes.trim(),
       };
 
       if (editId) {
@@ -50,73 +89,14 @@ export default function CareForm() {
       }
 
       router.push("/dashboard");
-    },
-  });
-
-  const addMedication = () => {
-    form.setFieldValue("medications", [
-      ...form.getFieldValue("medications"),
-      {
-        id: crypto.randomUUID(),
-        name: "",
-        time: "",
-        dosage: "",
-      },
-    ]);
+    } catch (error) {
+      console.error("Error saving chatbot:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const updateMedication = (
-    index: number,
-    field: keyof Medication,
-    value: string
-  ) => {
-    const medications = form.getFieldValue("medications");
-    const updated = medications.map((med, i) =>
-      i === index ? { ...med, [field]: value } : med
-    );
-    form.setFieldValue("medications", updated);
-  };
-
-  const removeMedication = (index: number) => {
-    const medications = form.getFieldValue("medications");
-    form.setFieldValue(
-      "medications",
-      medications.filter((_, i) => i !== index)
-    );
-  };
-
-  const addAppointment = () => {
-    form.setFieldValue("appointments", [
-      ...form.getFieldValue("appointments"),
-      {
-        id: crypto.randomUUID(),
-        title: "",
-        date: "",
-        time: "",
-        location: "",
-      },
-    ]);
-  };
-
-  const updateAppointment = (
-    index: number,
-    field: keyof Appointment,
-    value: string
-  ) => {
-    const appointments = form.getFieldValue("appointments");
-    const updated = appointments.map((apt, i) =>
-      i === index ? { ...apt, [field]: value } : apt
-    );
-    form.setFieldValue("appointments", updated);
-  };
-
-  const removeAppointment = (index: number) => {
-    const appointments = form.getFieldValue("appointments");
-    form.setFieldValue(
-      "appointments",
-      appointments.filter((_, i) => i !== index)
-    );
-  };
+  const canSubmit = elderlyName.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -132,14 +112,7 @@ export default function CareForm() {
             </p>
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-            className="space-y-6"
-          >
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
                 htmlFor="elderlyName"
@@ -147,25 +120,15 @@ export default function CareForm() {
               >
                 Elderly Person&apos;s Name *
               </label>
-              <form.Field
-                name="elderlyName"
-                validators={{
-                  onChange: ({ value }) =>
-                    !value.trim() ? "Name is required" : undefined,
-                }}
-              >
-                {(field) => (
-                  <input
-                    type="text"
-                    id="elderlyName"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="Enter the elderly person's name"
-                  />
-                )}
-              </form.Field>
+              <input
+                type="text"
+                id="elderlyName"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={elderlyName}
+                onChange={(e) => setElderlyName(e.target.value)}
+                placeholder="Enter the elderly person's name"
+              />
             </div>
 
             <div>
@@ -176,63 +139,58 @@ export default function CareForm() {
                 <button
                   type="button"
                   onClick={addMedication}
-                  className="text-primary hover:text-primary/80 text-sm font-medium"
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   + Add Medication
                 </button>
               </div>
-              <form.Field name="medications">
-                {(field) => (
-                  <div className="space-y-3">
-                    {field.state.value.map((medication, index) => (
-                      <div
-                        key={medication.id}
-                        className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border border-gray-200 rounded-md"
-                      >
-                        <input
-                          type="text"
-                          placeholder="Medication name"
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          value={medication.name}
-                          onChange={(e) =>
-                            updateMedication(index, "name", e.target.value)
-                          }
-                        />
-                        <input
-                          type="time"
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          value={medication.time}
-                          onChange={(e) =>
-                            updateMedication(index, "time", e.target.value)
-                          }
-                        />
-                        <input
-                          type="text"
-                          placeholder="Dosage (optional)"
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          value={medication.dosage || ""}
-                          onChange={(e) =>
-                            updateMedication(index, "dosage", e.target.value)
-                          }
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeMedication(index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                    {field.state.value.length === 0 && (
-                      <p className="text-gray-500 text-sm italic">
-                        No medications added yet. Click &quot;Add
-                        Medication&quot; to get started.
-                      </p>
-                    )}
+              <div className="space-y-3">
+                {medications.map((medication, index) => (
+                  <div
+                    key={medication.id}
+                    className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border border-gray-200 rounded-md"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Medication name"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={medication.name}
+                      onChange={(e) =>
+                        updateMedication(index, "name", e.target.value)
+                      }
+                    />
+                    <input
+                      type="time"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={medication.time}
+                      onChange={(e) =>
+                        updateMedication(index, "time", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Dosage (optional)"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={medication.dosage || ""}
+                      onChange={(e) =>
+                        updateMedication(index, "dosage", e.target.value)
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeMedication(index)}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    >
+                      Remove
+                    </button>
                   </div>
+                ))}
+                {medications.length === 0 && (
+                  <p className="text-gray-500 text-sm italic">
+                    No medications added yet. Click &quot;Add Medication&quot; to get started.
+                  </p>
                 )}
-              </form.Field>
+              </div>
             </div>
 
             <div>
@@ -243,71 +201,66 @@ export default function CareForm() {
                 <button
                   type="button"
                   onClick={addAppointment}
-                  className="text-primary hover:text-primary/80 text-sm font-medium"
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   + Add Appointment
                 </button>
               </div>
-              <form.Field name="appointments">
-                {(field) => (
-                  <div className="space-y-3">
-                    {field.state.value.map((appointment, index) => (
-                      <div
-                        key={appointment.id}
-                        className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded-md"
-                      >
-                        <input
-                          type="text"
-                          placeholder="Appointment title"
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          value={appointment.title}
-                          onChange={(e) =>
-                            updateAppointment(index, "title", e.target.value)
-                          }
-                        />
-                        <input
-                          type="date"
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          value={appointment.date}
-                          onChange={(e) =>
-                            updateAppointment(index, "date", e.target.value)
-                          }
-                        />
-                        <input
-                          type="time"
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          value={appointment.time}
-                          onChange={(e) =>
-                            updateAppointment(index, "time", e.target.value)
-                          }
-                        />
-                        <input
-                          type="text"
-                          placeholder="Location (optional)"
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          value={appointment.location || ""}
-                          onChange={(e) =>
-                            updateAppointment(index, "location", e.target.value)
-                          }
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeAppointment(index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                    {field.state.value.length === 0 && (
-                      <p className="text-gray-500 text-sm italic">
-                        No appointments added yet. Click &quot;Add
-                        Appointment&quot; to get started.
-                      </p>
-                    )}
+              <div className="space-y-3">
+                {appointments.map((appointment, index) => (
+                  <div
+                    key={appointment.id}
+                    className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded-md"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Appointment title"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={appointment.title}
+                      onChange={(e) =>
+                        updateAppointment(index, "title", e.target.value)
+                      }
+                    />
+                    <input
+                      type="date"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={appointment.date}
+                      onChange={(e) =>
+                        updateAppointment(index, "date", e.target.value)
+                      }
+                    />
+                    <input
+                      type="time"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={appointment.time}
+                      onChange={(e) =>
+                        updateAppointment(index, "time", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Location (optional)"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={appointment.location || ""}
+                      onChange={(e) =>
+                        updateAppointment(index, "location", e.target.value)
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAppointment(index)}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    >
+                      Remove
+                    </button>
                   </div>
+                ))}
+                {appointments.length === 0 && (
+                  <p className="text-gray-500 text-sm italic">
+                    No appointments added yet. Click &quot;Add Appointment&quot; to get started.
+                  </p>
                 )}
-              </form.Field>
+              </div>
             </div>
 
             <div>
@@ -317,18 +270,14 @@ export default function CareForm() {
               >
                 Additional Notes
               </label>
-              <form.Field name="notes">
-                {(field) => (
-                  <textarea
-                    id="notes"
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="Any additional information, preferences, or special instructions..."
-                  />
-                )}
-              </form.Field>
+              <textarea
+                id="notes"
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any additional information, preferences, or special instructions..."
+              />
             </div>
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
@@ -339,23 +288,17 @@ export default function CareForm() {
               >
                 Cancel
               </button>
-              <form.Subscribe
-                selector={(state) => [state.canSubmit, state.isSubmitting]}
+              <button
+                type="submit"
+                disabled={!canSubmit || isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {([canSubmit, isSubmitting]) => (
-                  <button
-                    type="submit"
-                    disabled={!canSubmit || isSubmitting}
-                    className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting
-                      ? "Saving..."
-                      : editId
-                      ? "Update Chatbot"
-                      : "Create Chatbot"}
-                  </button>
-                )}
-              </form.Subscribe>
+                {isSubmitting
+                  ? "Saving..."
+                  : editId
+                  ? "Update Chatbot"
+                  : "Create Chatbot"}
+              </button>
             </div>
           </form>
         </div>

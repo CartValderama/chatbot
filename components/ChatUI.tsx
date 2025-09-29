@@ -168,15 +168,14 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
     <div className="flex flex-col h-full">
       {/* API Status Indicator */}
       {apiStatus === "error" && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
-          <div className="flex">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg m-4 p-4">
+          <div className="flex items-center">
             <div className="flex-shrink-0">
-              <span className="text-yellow-400">⚠️</span>
+              <span className="text-yellow-500 text-xl">⚠️</span>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                External AI service is not connected. Using basic responses.
-                Please check your API configuration.
+            <div className="ml-4">
+              <p className="text-lg text-yellow-800 font-medium">
+                Connection issue - Using simplified responses for now.
               </p>
             </div>
           </div>
@@ -184,17 +183,20 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 && (
-          <div className="text-center py-8">
-            <div className="bg-blue-50 rounded-lg p-6 max-w-md mx-auto">
-              <h3 className="text-lg font-medium text-blue-900 mb-2">
+          <div className="text-center py-12">
+            <div className="bg-blue-50 rounded-xl p-8 max-w-2xl mx-auto border border-blue-100">
+              <h3 className="text-2xl font-bold text-blue-900 mb-4">
                 Hello, {chatbot.elderlyName}!
               </h3>
-              <p className="text-blue-700">
-                I&apos;m your virtual caregiver. I can help you with medication
-                reminders, appointment information, and daily routine
-                assistance. Feel free to ask me anything!
+              <p className="text-xl text-blue-800 leading-relaxed">
+                I&apos;m your virtual caregiver assistant. I can help you with:
+                <br /><br />
+                • Medication reminders<br />
+                • Appointment information<br />
+                • Daily routine assistance<br /><br />
+                Feel free to ask me anything!
               </p>
             </div>
           </div>
@@ -208,15 +210,15 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
             }`}
           >
             <div
-              className={`max-w-[70%] rounded-lg px-4 py-2 ${
+              className={`max-w-[80%] rounded-xl px-6 py-4 ${
                 msg.sender === "user"
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-900"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-900 border border-gray-200"
               }`}
             >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p className="whitespace-pre-wrap text-lg leading-relaxed">{msg.content}</p>
               <p
-                className={`text-xs mt-1 ${
+                className={`text-sm mt-2 ${
                   msg.sender === "user" ? "text-blue-100" : "text-gray-500"
                 }`}
               >
@@ -231,17 +233,20 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
 
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-2">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
+            <div className="bg-gray-100 rounded-xl px-6 py-4 border border-gray-200">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg text-gray-600">Typing</span>
+                <div className="flex space-x-1">
+                  <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div
+                    className="w-3 h-3 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
+                  <div
+                    className="w-3 h-3 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.4s" }}
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
@@ -251,17 +256,17 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex space-x-2">
+      <div className="border-t border-gray-200 p-6">
+        <div className="flex space-x-4">
           <div className="flex-1 relative">
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={`Type a message to ${chatbot.elderlyName}'s caregiver...`}
-              className="w-full resize-none border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              placeholder={`Type your message here...`}
+              className="w-full resize-none border-2 border-gray-300 rounded-xl px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               rows={1}
-              style={{ minHeight: "40px", maxHeight: "120px" }}
+              style={{ minHeight: "60px", maxHeight: "140px" }}
             />
           </div>
 
@@ -272,20 +277,20 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
               <button
                 type="button"
                 onClick={isListening ? stopListening : startListening}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-5 py-4 rounded-xl text-lg font-medium transition-colors min-w-[80px] ${
                   isListening
                     ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 border-2 border-gray-300"
                 }`}
               >
-                {isListening ? "⏹️" : "🎤"}
+                {isListening ? "⏹️ Stop" : "🎤 Voice"}
               </button>
             )}
 
           <button
             onClick={handleSendMessage}
             disabled={!message.trim() || isTyping}
-            className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-4 bg-blue-600 text-white rounded-xl text-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[100px]"
           >
             Send
           </button>
