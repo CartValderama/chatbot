@@ -47,7 +47,7 @@ function ChatbotContent() {
       <Header />
 
       {/* Chat Interface */}
-      <main className="flex-1 max-w-4xl mx-auto w-full">
+      <main className="flex-1 max-w-4xl mx-auto w-full overflow-hidden">
         <div className="h-full bg-white shadow-sm">
           <ChatUI chatbot={chatbot} user={user} />
         </div>
