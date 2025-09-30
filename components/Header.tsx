@@ -13,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus } from "lucide-react";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 
 export function Header() {
@@ -87,22 +86,11 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/dashboard")}>
-                Dashboard
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout}>
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {isDashboardPage && (
-            <Button asChild size={"sm"} className="gap-0">
-              <Link href="/form">
-                <Plus className="md:mr-2 h-4 w-4" />
-                <span className="hidden md:inline">Create Assistant</span>
-              </Link>
-            </Button>
-          )}
         </div>
       </div>
     </header>

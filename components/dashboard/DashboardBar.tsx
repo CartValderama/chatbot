@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Grid3x3, List } from "lucide-react";
+import { Search, Grid3x3, List, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface SearchBarProps {
   searchQuery: string;
@@ -9,7 +10,7 @@ interface SearchBarProps {
   onViewModeChange: (mode: "grid" | "table") => void;
 }
 
-export function SearchBar({
+export function DashboardBar({
   searchQuery,
   onSearchChange,
   viewMode,
@@ -29,6 +30,12 @@ export function SearchBar({
 
       {/* View Toggle */}
       <div className="flex gap-2">
+        <Button asChild className="gap-0 p-2.5">
+          <Link href="/form">
+            <Plus className="md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">Create Assistant</span>
+          </Link>
+        </Button>
         <Button
           variant={viewMode === "grid" ? "default" : "outline"}
           size="icon"

@@ -3,7 +3,6 @@
 import { useAuth } from "@/lib/auth-context";
 import { useChatbotStore } from "@/lib/stores/chatbot-store";
 import Dashboard from "@/components/dashboard";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Header } from "@/components/Header";

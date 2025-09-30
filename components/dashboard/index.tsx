@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import { SearchBar } from "./SearchBar";
+import { DashboardBar } from "./DashboardBar";
 import { GridView } from "./GridView";
 import { TableView } from "./TableView";
 import { Pagination } from "./Pagination";
@@ -61,7 +61,7 @@ export default function Dashboard({ chatbots }: DashboardProps) {
   return (
     <div className="space-y-4">
       {/* Search and Filter Bar */}
-      <SearchBar
+      <DashboardBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         viewMode={viewMode}
