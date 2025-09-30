@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Grid3x3, List, Plus } from "lucide-react";
 import Link from "next/link";
 
-interface SearchBarProps {
+interface DashboardBarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   viewMode: "grid" | "table";
@@ -15,7 +15,9 @@ export function DashboardBar({
   onSearchChange,
   viewMode,
   onViewModeChange,
-}: SearchBarProps) {
+}: DashboardBarProps) {
+  const isGrid = viewMode === "grid";
+
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
       <div className="relative flex-1 sm:max-w-sm">
@@ -37,18 +39,15 @@ export function DashboardBar({
           </Link>
         </Button>
         <Button
-          variant={viewMode === "grid" ? "default" : "outline"}
+          variant="outline"
           size="icon"
-          onClick={() => onViewModeChange("grid")}
+          onClick={() => onViewModeChange(isGrid ? "table" : "grid")}
         >
-          <Grid3x3 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={viewMode === "table" ? "default" : "outline"}
-          size="icon"
-          onClick={() => onViewModeChange("table")}
-        >
-          <List className="h-4 w-4" />
+          {isGrid ? (
+            <List className="h-4 w-4" />
+          ) : (
+            <Grid3x3 className="h-4 w-4" />
+          )}
         </Button>
       </div>
     </div>

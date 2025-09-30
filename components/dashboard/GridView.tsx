@@ -31,7 +31,7 @@ export function GridView({ chatbots }: GridViewProps) {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="flex-1 px-4">
+          <CardContent className="flex-1 px-6">
             {chatbot.notes && (
               <div className="text-sm text-muted-foreground">
                 <p className="line-clamp-2">{chatbot.notes}</p>
