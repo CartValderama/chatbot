@@ -16,7 +16,6 @@ export function useAssistantForm(editId: string | null, existingChatbot: any) {
     tasks:
       existingChatbot?.tasks.map((task: Task) => ({
         ...task,
-        isSaved: true,
       })) || [],
     notes: existingChatbot?.notes || "",
   });
@@ -50,13 +49,13 @@ export function useAssistantForm(editId: string | null, existingChatbot: any) {
       if (editId) {
         await updateChatbot(editId, chatbotData);
         toast({
-          title: "Success",
+          title: "Updated",
           description: "Care assistant updated successfully.",
         });
       } else {
         await addChatbot(chatbotData);
         toast({
-          title: "Success",
+          title: "Created",
           description: "Care assistant created successfully.",
         });
       }
@@ -73,6 +72,7 @@ export function useAssistantForm(editId: string | null, existingChatbot: any) {
   };
 
   const addTask = () => {
+    const newTaskIndex = formData.tasks.length;
     setFormData({
       ...formData,
       tasks: [
@@ -82,12 +82,11 @@ export function useAssistantForm(editId: string | null, existingChatbot: any) {
           time: "",
           description: "",
           priority: "normal",
-          isSaved: true,
         },
       ],
     });
 
-    setOpenAccordions([...openAccordions]);
+    setOpenAccordions([...openAccordions, `task-${newTaskIndex}`]);
   };
 
   const updateTask = (index: number, field: keyof Task, value: string) => {
@@ -110,7 +109,7 @@ export function useAssistantForm(editId: string | null, existingChatbot: any) {
     try {
       await deleteChatbot(editId);
       toast({
-        title: "Success",
+        title: "Deleted",
         description: "Care assistant deleted successfully.",
       });
       router.push("/dashboard");

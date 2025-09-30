@@ -9,7 +9,6 @@ export interface Task {
   time: string;
   description?: string;
   priority?: "high" | "normal";
-  isSaved?: boolean;
 }
 
 export interface ChatbotConfig {

@@ -71,12 +71,12 @@ export function TaskAccordion({
                     </span>
                   )}
                   {task.priority === "high" && (
-                    <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                       Important
                     </span>
                   )}
                   {!taskComplete && (
-                    <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                    <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
                       Incomplete
                     </span>
                   )}
