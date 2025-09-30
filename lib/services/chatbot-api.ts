@@ -43,61 +43,42 @@ class ChatbotAPI {
       day: "numeric",
     });
 
-    const medicationsText =
-      chatbot.medications.length > 0
-        ? chatbot.medications
+    const tasksText =
+      chatbot.tasks.length > 0
+        ? chatbot.tasks
             .map(
-              (med) =>
-                `- ${med.name} at ${med.time}${
-                  med.dosage ? ` (${med.dosage})` : ""
-                }`
+              (task) =>
+                `- ${task.name} at ${task.time}${
+                  task.description ? ` (${task.description})` : ""
+                }${task.priority === "high" ? " [IMPORTANT]" : ""}`
             )
             .join("\n")
-        : "No medications scheduled";
+        : "No tasks scheduled";
 
-    const appointmentsText =
-      chatbot.appointments.length > 0
-        ? chatbot.appointments
-            .map(
-              (apt) =>
-                `- ${apt.title} on ${apt.date} at ${apt.time}${
-                  apt.location ? ` at ${apt.location}` : ""
-                }`
-            )
-            .join("\n")
-        : "No appointments scheduled";
-
-    return `You are a caring virtual caregiver assistant for ${
-      chatbot.elderlyName
-    }, an elderly person.
+    return `You are a caring virtual caregiver assistant named ${chatbot.chatbotName}.
 
 CURRENT CONTEXT:
 - Current time: ${currentTime}
 - Current date: ${currentDate}
-- Patient name: ${chatbot.elderlyName}
+- Assistant name: ${chatbot.chatbotName}
 
-MEDICATIONS SCHEDULE:
-${medicationsText}
-
-APPOINTMENTS:
-${appointmentsText}
+DAILY TASKS SCHEDULE:
+${tasksText}
 
 ADDITIONAL NOTES:
 ${chatbot.notes || "No additional notes"}
 
 INSTRUCTIONS:
-- Always address the user as ${chatbot.elderlyName}
 - Be warm, caring, and patient in your responses
 - Keep responses concise (1-3 sentences unless asked for details)
-- Prioritize medication reminders and appointment information
+- Prioritize task reminders and important activities
 - Provide helpful health and wellness advice when appropriate
-- If asked about medications or appointments, refer to the specific information provided above
+- If asked about tasks or schedule, refer to the specific information provided above
 - Use emojis sparingly and only when appropriate
-- Be encouraging about taking medications on time and attending appointments
+- Be encouraging about completing tasks on time
+- For high priority tasks marked as [IMPORTANT], emphasize their importance
 
-Remember: You are a supportive companion focused on helping ${
-      chatbot.elderlyName
-    } maintain their health routine and providing friendly conversation.`;
+Remember: You are a supportive companion focused on helping maintain a healthy daily routine and providing friendly conversation.`;
   }
 
   async generateResponse(
@@ -107,7 +88,7 @@ Remember: You are a supportive companion focused on helping ${
     try {
       if (!this.config.apiKey || !this.config.url) {
         return {
-          response: `Hello ${chatbot.elderlyName}! I'm having trouble connecting to my knowledge base right now. Please make sure the chatbot API is properly configured, or try again later.`,
+          response: `Hello! I'm having trouble connecting to my knowledge base right now. Please make sure the chatbot API is properly configured, or try again later.`,
           error: "API configuration missing",
         };
       }
@@ -128,7 +109,7 @@ Remember: You are a supportive companion focused on helping ${
     } catch (error) {
       console.error("Chatbot API error:", error);
       return {
-        response: `I'm sorry ${chatbot.elderlyName}, I'm having trouble processing your message right now. Please try again in a moment, or contact your caregiver if the problem persists.`,
+        response: `I'm sorry, I'm having trouble processing your message right now. Please try again in a moment.`,
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }

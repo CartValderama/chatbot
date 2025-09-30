@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication - in real app, this would call an API
+    // Mock authentication: in real app, this would call an API
     if (email && password.length >= 6) {
       const mockUser: User = {
         id: "1",

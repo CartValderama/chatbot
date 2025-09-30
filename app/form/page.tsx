@@ -3,7 +3,7 @@
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import CareForm from '@/components/CareForm'
+import AssistantForm from '@/components/assistantform'
 
 export default function FormPage() {
   const { user } = useAuth()
@@ -19,5 +19,5 @@ export default function FormPage() {
     return null
   }
 
-  return <CareForm />
+  return <AssistantForm />
 }

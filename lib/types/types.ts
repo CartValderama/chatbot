@@ -4,34 +4,24 @@ export interface User {
   name: string;
 }
 
-export interface Medication {
-  id: string;
+export interface Task {
   name: string;
   time: string;
-  dosage?: string;
-}
-
-export interface Appointment {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location?: string;
+  description?: string;
+  priority?: "high" | "normal";
+  isSaved?: boolean;
 }
 
 export interface ChatbotConfig {
   id: string;
-  elderlyName: string;
-  medications: Medication[];
-  appointments: Appointment[];
+  chatbotName: string;
+  tasks: Task[];
   notes: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface Message {
   id: string;
   content: string;
-  sender: 'user' | 'bot';
+  sender: "user" | "bot";
   timestamp: string;
 }

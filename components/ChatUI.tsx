@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useChatbotStore } from "@/lib/store";
-import { ChatbotConfig, Message } from "@/lib/types/types";
+import { useMessageStore } from "@/lib/stores/message-store";
+import { ChatbotConfig, User } from "@/lib/types/types";
 
 interface ChatUIProps {
   chatbot: ChatbotConfig;
+  user: User;
 }
 
-export default function ChatUI({ chatbot }: ChatUIProps) {
+export default function ChatUI({ chatbot, user }: ChatUIProps) {
   const [message, setMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -18,7 +19,7 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  const { addMessage, getMessages } = useChatbotStore();
+  const { addMessage, getMessages } = useMessageStore();
   const messages = getMessages(chatbot.id);
 
   useEffect(() => {
@@ -111,49 +112,48 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
 
       return (
         data.response ||
-        `I'm sorry, ${chatbot.elderlyName}, I didn't receive a proper response. Please try asking your question again.`
+        `I'm sorry, ${user?.name}, I didn't receive a proper response. Please try asking your question again.`
       );
     } catch (error) {
       console.error("Error calling chat API:", error);
       // Enhanced fallback response
-      return `I'm sorry, ${chatbot.elderlyName}, I'm having trouble connecting to my knowledge base right now. This might be due to network issues or API configuration. Please try again in a moment, or contact your caregiver for assistance.`;
+      return `I'm sorry, ${user?.name}, I'm having trouble connecting to my knowledge base right now. This might be due to network issues or API configuration. Please try again in a moment, or contact your caregiver for assistance.`;
     }
   };
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
 
-    // Add user message
-    addMessage(chatbot.id, {
-      content: message.trim(),
-      sender: "user",
-    });
-
     const userMessage = message.trim();
     setMessage("");
     setIsTyping(true);
 
     try {
+      // Add user message
+      await addMessage(chatbot.id, {
+        content: userMessage,
+        sender: "user",
+      });
+
       // Call the API to get bot response
       const botResponse = await generateBotResponse(userMessage);
 
       // Add a small delay for better UX (simulating thinking time)
-      setTimeout(() => {
-        addMessage(chatbot.id, {
-          content: botResponse,
-          sender: "bot",
-        });
+      setTimeout(async () => {
+        try {
+          await addMessage(chatbot.id, {
+            content: botResponse,
+            sender: "bot",
+          });
+        } catch (error) {
+          console.error("Failed to save bot message:", error);
+        }
         setIsTyping(false);
       }, 500 + Math.random() * 1000);
     } catch (error) {
-      console.error("Error generating bot response:", error);
-      setTimeout(() => {
-        addMessage(chatbot.id, {
-          content: `I'm sorry, ${chatbot.elderlyName}, I'm having trouble responding right now. Please try again in a moment.`,
-          sender: "bot",
-        });
-        setIsTyping(false);
-      }, 500);
+      console.error("Error sending message:", error);
+      setMessage(userMessage); // Restore message on error
+      setIsTyping(false);
     }
   };
 
@@ -189,7 +189,7 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
           <div className="text-center py-8">
             <div className="bg-blue-50 rounded-lg p-6 max-w-md mx-auto">
               <h3 className="text-lg font-medium text-blue-900 mb-2">
-                Hello, {chatbot.elderlyName}!
+                Hello, {user?.name}!
               </h3>
               <p className="text-blue-700">
                 I&apos;m your virtual caregiver. I can help you with medication
@@ -258,7 +258,7 @@ export default function ChatUI({ chatbot }: ChatUIProps) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={`Type a message to ${chatbot.elderlyName}'s caregiver...`}
+              placeholder={`Type a message to ${user?.name}'s caregiver...`}
               className="w-full resize-none border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               rows={1}
               style={{ minHeight: "40px", maxHeight: "120px" }}
