@@ -26,8 +26,8 @@ export function GridView({ chatbots }: GridViewProps) {
             </CardTitle>
 
             <CardDescription>
-              {chatbot.tasks.length}{" "}
-              {chatbot.tasks.length === 1 ? "task" : "tasks"}
+              {chatbot.tasks?.length}{" "}
+              {chatbot.tasks?.length === 1 ? "task" : "tasks"}
             </CardDescription>
           </CardHeader>
 
