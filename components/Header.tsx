@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, ArrowUpLeftSquare, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 
 export function Header() {
