@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 // POST: Add a chat message (for automated reminder messages)
 export async function POST(request: NextRequest) {
   try {
+    const db = getDb();
     const { userId, messageText, senderType, intent } = await request.json();
 
     if (!userId || !messageText || !senderType) {
@@ -13,15 +14,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result: any = await query(
-      `INSERT INTO Chat_Messages (User_ID, Message_Text, Sender_Type, Intent)
-       VALUES (?, ?, ?, ?)`,
-      [userId, messageText, senderType, intent || null]
-    );
+    const { data, error } = await db
+      .from('chat_messages')
+      .insert([{
+        user_id: userId,
+        message_text: messageText,
+        sender_type: senderType,
+        intent: intent || null
+      }])
+      .select('message_id')
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
-      messageId: result.lastInsertRowid || result.insertId,
+      messageId: data.message_id,
     });
   } catch (error) {
     console.error('Error adding chat message:', error);

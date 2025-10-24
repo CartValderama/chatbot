@@ -1,50 +1,30 @@
 // Database connection utility
-// This file will handle database connections and queries using SQLite
+// This file handles database connections using Supabase (PostgreSQL)
 
-import Database from 'better-sqlite3';
-import path from 'path';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-let db: Database.Database | null = null;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Get database instance
-export function getDb() {
-  if (!db) {
-    const dbPath = path.join(process.cwd(), 'database', 'healthcare_chatbot.db');
-    db = new Database(dbPath);
-    db.pragma('foreign_keys = ON');
+let supabase: SupabaseClient | null = null;
+
+// Get Supabase client instance
+export function getDb(): SupabaseClient {
+  if (!supabase) {
+    supabase = createClient(supabaseUrl, supabaseKey);
   }
-  return db;
+  return supabase;
 }
 
-// Query helper function that mimics async behavior for compatibility
+// For backwards compatibility - but prefer using getDb() directly
 export async function query<T = any>(sql: string, params?: any[]): Promise<T> {
-  try {
-    const database = getDb();
-
-    // Determine if it's a SELECT query or a modification query
-    const isSelect = sql.trim().toUpperCase().startsWith('SELECT');
-
-    if (isSelect) {
-      // For SELECT queries, return all rows
-      const stmt = database.prepare(sql);
-      const results = params ? stmt.all(...params) : stmt.all();
-      return results as T;
-    } else {
-      // For INSERT, UPDATE, DELETE queries
-      const stmt = database.prepare(sql);
-      const result = params ? stmt.run(...params) : stmt.run();
-      return result as T;
-    }
-  } catch (error) {
-    console.error('Database query error:', error);
-    throw error;
-  }
+  throw new Error('Raw SQL queries not supported with Supabase. Use getDb() and Supabase client methods instead.');
 }
 
-// Close database connection
+// Export Supabase client for direct use
+export const supabaseClient = getDb();
+
+// Close database connection (Supabase handles this automatically)
 export async function closeDb() {
-  if (db) {
-    db.close();
-    db = null;
-  }
+  supabase = null;
 }

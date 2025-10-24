@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
+    const db = getDb();
     const { email, password } = await request.json();
 
     if (!email || !password) {
@@ -10,23 +11,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user exists in database
-    const users: any[] = await query(
-      `SELECT u.User_ID, u.First_Name, u.Last_Name, u.Email
-       FROM Users u
-       JOIN Login_Credentials lc ON u.User_ID = lc.User_ID
-       WHERE u.Email = ? AND lc.User_Type = 'Elder' AND lc.Account_Status = 'Active'`,
-      [email]
-    );
+    const { data: users, error } = await db
+      .from('users')
+      .select(`
+        user_id,
+        first_name,
+        last_name,
+        email,
+        login_credentials!inner(user_type, account_status)
+      `)
+      .eq('email', email)
+      .eq('login_credentials.user_type', 'Elder')
+      .eq('login_credentials.account_status', 'Active');
 
-    if (users.length > 0) {
+    if (error) throw error;
+
+    if (users && users.length > 0) {
       const user = users[0];
       return NextResponse.json({
         user: {
-          id: user.User_ID,
-          email: user.Email,
-          firstName: user.First_Name,
-          lastName: user.Last_Name,
-          name: `${user.First_Name} ${user.Last_Name}`,
+          id: user.user_id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          name: `${user.first_name} ${user.last_name}`,
         },
       });
     }

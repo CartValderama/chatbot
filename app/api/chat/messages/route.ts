@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 // GET: Fetch chat messages for a user
 export async function GET(request: NextRequest) {
   try {
+    const db = getDb();
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
 
@@ -11,23 +12,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    const messages: any[] = await query(
-      `SELECT Message_ID as id, Message_Text as content, Sender_Type as sender,
-              datetime(Timestamp, 'localtime') as timestamp, Intent as intent
-       FROM Chat_Messages
-       WHERE User_ID = ?
-       ORDER BY Timestamp ASC`,
-      [userId]
-    );
+    const { data: messages, error } = await db
+      .from('chat_messages')
+      .select('message_id, message_text, sender_type, timestamp, intent')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: true });
+
+    if (error) throw error;
 
     // Convert sender type to lowercase for consistency
-    const formattedMessages = messages.map(msg => ({
-      id: msg.id.toString(),
-      content: msg.content,
-      sender: msg.sender === 'User' ? 'user' : 'bot',
+    const formattedMessages = messages?.map((msg: any) => ({
+      id: msg.message_id.toString(),
+      content: msg.message_text,
+      sender: msg.sender_type === 'User' ? 'user' : 'bot',
       timestamp: msg.timestamp,
       intent: msg.intent
-    }));
+    })) || [];
 
     return NextResponse.json({ messages: formattedMessages });
   } catch (error) {

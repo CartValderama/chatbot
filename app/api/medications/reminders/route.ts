@@ -1,44 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 // GET: Fetch medication reminders for a user
 export async function GET(request: NextRequest) {
   try {
+    const db = getDb();
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId') || '1'; // Default to user 1 (Anna Hansen)
     const date = searchParams.get('date'); // Optional: filter by specific date
 
-    let sql = `
-      SELECT
-        r.Reminder_ID as id,
-        r.User_ID as userId,
-        r.Prescription_ID as prescriptionId,
-        r.Reminder_DateTime as reminderDateTime,
-        r.Status as status,
-        r.Notes as notes,
-        m.Name as medicineName,
-        p.Dosage as dosage,
-        p.Frequency as frequency,
-        p.Instructions as instructions
-      FROM Reminders r
-      JOIN Prescriptions p ON r.Prescription_ID = p.Prescription_ID
-      JOIN Medicines m ON p.Medicine_ID = m.Medicine_ID
-      WHERE r.User_ID = ?
-    `;
-
-    const params: any[] = [userId];
+    let query = db
+      .from('reminders')
+      .select(`
+        reminder_id,
+        user_id,
+        prescription_id,
+        reminder_datetime,
+        status,
+        notes,
+        prescriptions(
+          dosage,
+          frequency,
+          instructions,
+          medicines(name)
+        )
+      `)
+      .eq('user_id', userId);
 
     if (date) {
-      sql += ' AND DATE(r.Reminder_DateTime) = ?';
-      params.push(date);
+      // Filter by specific date
+      query = query.gte('reminder_datetime', `${date}T00:00:00`).lte('reminder_datetime', `${date}T23:59:59`);
     } else {
       // Default: get today's and upcoming reminders
-      sql += " AND DATE(r.Reminder_DateTime) >= DATE('now')";
+      const today = new Date().toISOString().split('T')[0];
+      query = query.gte('reminder_datetime', `${today}T00:00:00`);
     }
 
-    sql += ' ORDER BY r.Reminder_DateTime ASC';
+    query = query.order('reminder_datetime', { ascending: true });
 
-    const reminders = await query(sql, params);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Transform the data to match the expected format
+    const reminders = data?.map((r: any) => ({
+      id: r.reminder_id,
+      userId: r.user_id,
+      prescriptionId: r.prescription_id,
+      reminderDateTime: r.reminder_datetime,
+      status: r.status,
+      notes: r.notes,
+      medicineName: r.prescriptions?.medicines?.name,
+      dosage: r.prescriptions?.dosage,
+      frequency: r.prescriptions?.frequency,
+      instructions: r.prescriptions?.instructions
+    })) || [];
 
     return NextResponse.json({
       success: true,
@@ -56,6 +71,7 @@ export async function GET(request: NextRequest) {
 // POST: Create a new reminder
 export async function POST(request: NextRequest) {
   try {
+    const db = getDb();
     const { userId, prescriptionId, reminderDateTime, notes } = await request.json();
 
     if (!userId || !prescriptionId || !reminderDateTime) {
@@ -65,15 +81,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result: any = await query(
-      `INSERT INTO Reminders (User_ID, Prescription_ID, Reminder_DateTime, Status, Notes)
-       VALUES (?, ?, ?, 'Pending', ?)`,
-      [userId, prescriptionId, reminderDateTime, notes || null]
-    );
+    const { data, error } = await db
+      .from('reminders')
+      .insert([{
+        user_id: userId,
+        prescription_id: prescriptionId,
+        reminder_datetime: reminderDateTime,
+        status: 'Pending',
+        notes: notes || null
+      }])
+      .select('reminder_id')
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
-      reminderId: result.insertId
+      reminderId: data.reminder_id
     });
   } catch (error) {
     console.error('Error creating reminder:', error);
@@ -87,6 +111,7 @@ export async function POST(request: NextRequest) {
 // PATCH: Update reminder status
 export async function PATCH(request: NextRequest) {
   try {
+    const db = getDb();
     const { reminderId, status } = await request.json();
 
     if (!reminderId || !status) {
@@ -96,10 +121,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    await query(
-      'UPDATE Reminders SET Status = ? WHERE Reminder_ID = ?',
-      [status, reminderId]
-    );
+    const { error } = await db
+      .from('reminders')
+      .update({ status })
+      .eq('reminder_id', reminderId);
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
@@ -117,6 +144,7 @@ export async function PATCH(request: NextRequest) {
 // PUT: Update reminder details
 export async function PUT(request: NextRequest) {
   try {
+    const db = getDb();
     const { reminderId, reminderDateTime, notes } = await request.json();
 
     if (!reminderId || !reminderDateTime) {
@@ -126,10 +154,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    await query(
-      'UPDATE Reminders SET Reminder_DateTime = ?, Notes = ? WHERE Reminder_ID = ?',
-      [reminderDateTime, notes || null, reminderId]
-    );
+    const { error } = await db
+      .from('reminders')
+      .update({
+        reminder_datetime: reminderDateTime,
+        notes: notes || null
+      })
+      .eq('reminder_id', reminderId);
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
@@ -147,6 +180,7 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete a reminder
 export async function DELETE(request: NextRequest) {
   try {
+    const db = getDb();
     const searchParams = request.nextUrl.searchParams;
     const reminderId = searchParams.get('reminderId');
 
@@ -157,10 +191,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await query(
-      'DELETE FROM Reminders WHERE Reminder_ID = ?',
-      [reminderId]
-    );
+    const { error } = await db
+      .from('reminders')
+      .delete()
+      .eq('reminder_id', reminderId);
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
