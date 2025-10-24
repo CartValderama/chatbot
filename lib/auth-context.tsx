@@ -32,16 +32,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication: in real app, this would call an API
+    // Simple authentication: check if user exists in database
     if (email && password.length >= 6) {
-      const mockUser: User = {
-        id: "1",
-        email,
-        name: email.split("@")[0],
-      };
-      setUser(mockUser);
-      localStorage.setItem("user", JSON.stringify(mockUser));
-      return true;
+      try {
+        // Call API to check if user exists
+        const response = await fetch('/api/auth/check-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            const user: User = {
+              id: data.user.id.toString(),
+              email: data.user.email,
+              name: data.user.name,
+              firstName: data.user.firstName,
+              lastName: data.user.lastName,
+            };
+            setUser(user);
+            localStorage.setItem("user", JSON.stringify(user));
+            return true;
+          }
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+      }
     }
     return false;
   };

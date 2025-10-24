@@ -37,10 +37,10 @@ export default function LoginForm() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-3">
-              Caregiver Chatbot
+              Medication Reminder
             </h2>
             <p className="text-gray-600">
-              Sign in to manage your virtual caregivers
+              Sign in to manage your medications
             </p>
           </div>
 
@@ -98,10 +98,21 @@ export default function LoginForm() {
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-700 mb-3">Demo credentials:</p>
-              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                <p className="font-mono">demo@example.com</p>
-                <p className="font-mono">password123</p>
+              <p className="text-sm font-medium text-gray-700 mb-3">Available Patients:</p>
+              <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 space-y-2">
+                <div>
+                  <p className="font-semibold text-gray-800">Anna Hansen</p>
+                  <p className="font-mono text-xs">anna.hansen@email.no</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Per Olsen</p>
+                  <p className="font-mono text-xs">per.olsen@email.no</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Kari Larsen</p>
+                  <p className="font-mono text-xs">kari.larsen@email.no</p>
+                </div>
+                <p className="text-xs text-gray-500 pt-2">Password: password123 (any password works)</p>
               </div>
             </div>
           </div>

@@ -1,46 +1,33 @@
 "use client";
 
 import { useAuth } from "@/lib/auth-context";
-import { useChatbotStore } from "@/lib/stores/chatbot-store";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, Suspense } from "react";
 import ChatUI from "@/components/ChatUI";
 import { Header } from "@/components/Header";
 
 function ChatbotContent() {
   const { user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const chatbotId = searchParams.get("id");
-
-  const getChatbot = useChatbotStore((state) => state.getChatbot);
-  const [chatbot, setChatbot] = useState(
-    chatbotId ? getChatbot(chatbotId) : null
-  );
 
   useEffect(() => {
     if (!user) {
       router.push("/login");
       return;
     }
+  }, [user, router]);
 
-    if (!chatbotId) {
-      router.push("/dashboard");
-      return;
-    }
-
-    const foundChatbot = getChatbot(chatbotId);
-    if (!foundChatbot) {
-      router.push("/dashboard");
-      return;
-    }
-
-    setChatbot(foundChatbot);
-  }, [user, chatbotId, router, getChatbot]);
-
-  if (!user || !chatbot) {
+  if (!user) {
     return null;
   }
+
+  // Create a simple medication chatbot config
+  const medicationChatbot = {
+    id: 'medication-assistant',
+    chatbotName: 'Medication Assistant',
+    tasks: [],
+    notes: 'Helps with medication reminders and questions'
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -49,7 +36,7 @@ function ChatbotContent() {
       {/* Chat Interface */}
       <main className="flex-1 max-w-4xl mx-auto w-full overflow-hidden">
         <div className="h-full bg-white shadow-sm">
-          <ChatUI chatbot={chatbot} user={user} />
+          <ChatUI chatbot={medicationChatbot} user={user} />
         </div>
       </main>
     </div>

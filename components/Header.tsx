@@ -40,20 +40,21 @@ export function Header() {
   };
 
   const isChatbotPage = pathname?.startsWith("/chatbot");
+  const isAdminPage = pathname?.startsWith("/admin");
   const isDashboardPage = pathname === "/dashboard";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          {isChatbotPage ? (
+          {isChatbotPage || isAdminPage ? (
             <Button
               variant="ghost"
               onClick={() => router.push("/dashboard")}
               className="gap-2 p-0"
             >
               <ArrowLeftIcon />
-              Go to Dashboard
+              Back to Dashboard
             </Button>
           ) : (
             <Link href="/dashboard" className="flex items-center space-x-2">
@@ -63,6 +64,14 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          {!pathname?.startsWith("/admin") && (
+            <Button
+              variant="outline"
+              onClick={() => router.push("/admin")}
+            >
+              Admin Panel
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

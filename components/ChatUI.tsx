@@ -26,6 +26,32 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Load messages from database on mount and set up auto-refresh
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const response = await fetch(`/api/chat/messages?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Clear localStorage and use database messages
+          if (data.messages) {
+            const store = useMessageStore.getState();
+            store.messages[chatbot.id] = data.messages;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      }
+    };
+
+    // Load initially
+    loadMessages();
+
+    // Auto-refresh every 10 seconds to check for new automated messages
+    const interval = setInterval(loadMessages, 10000);
+    return () => clearInterval(interval);
+  }, [user.id, chatbot.id]);
+
   // Check API status on component mount
   useEffect(() => {
     const checkApiStatus = async () => {
@@ -95,7 +121,7 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
         },
         body: JSON.stringify({
           message: userMessage,
-          chatbot: chatbot,
+          userId: user.id, // Use logged-in user's ID
         }),
       });
 
@@ -117,7 +143,7 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
     } catch (error) {
       console.error("Error calling chat API:", error);
       // Enhanced fallback response
-      return `I'm sorry, ${user?.name}, I'm having trouble connecting to my knowledge base right now. This might be due to network issues or API configuration. Please try again in a moment, or contact your caregiver for assistance.`;
+      return `I'm sorry, ${user?.name}, I'm having trouble connecting to the medication database right now. Please try again in a moment, or contact your healthcare provider for assistance.`;
     }
   };
 
@@ -191,17 +217,19 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
                 Hello, {user?.name}!
               </h3>
               <p className="text-xl text-blue-800 leading-relaxed">
-                I&apos;m your virtual caregiver assistant. I can help you with:
+                I&apos;m your medication assistant. I can help you with:
                 <br />
                 <br />
-                • Medication reminders
+                • Today&apos;s medication schedule
                 <br />
-                • Appointment information
+                • Information about your prescriptions
                 <br />
-                • Daily routine assistance
+                • Side effects and concerns
+                <br />
+                • Missed dose guidance
                 <br />
                 <br />
-                Feel free to ask me anything!
+                Feel free to ask me anything about your medications!
               </p>
             </div>
           </div>
