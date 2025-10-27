@@ -57,6 +57,11 @@ export default function AdminPage() {
       router.push("/login");
       return;
     }
+    // Only allow doctors to access admin panel
+    if (user.userType === 'Elder') {
+      router.push("/chatbot");
+      return;
+    }
     fetchData();
   }, [user, router]);
 

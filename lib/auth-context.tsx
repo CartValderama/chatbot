@@ -62,6 +62,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: data.user.name,
               firstName: data.user.firstName,
               lastName: data.user.lastName,
+              userType: data.user.userType,
+              phone: data.user.phone,
+              birthDate: data.user.birthDate,
+              gender: data.user.gender,
+              address: data.user.address,
+              primaryDoctorId: data.user.primaryDoctorId,
+              speciality: data.user.speciality,
+              hospital: data.user.hospital,
             };
             setUser(user);
             localStorage.setItem("user", JSON.stringify(user));

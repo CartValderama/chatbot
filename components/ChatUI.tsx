@@ -26,17 +26,26 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load messages from database on mount and set up auto-refresh
+  // Load messages from database on mount only (no auto-refresh to prevent duplicates)
   useEffect(() => {
     const loadMessages = async () => {
       try {
         const response = await fetch(`/api/chat/messages?userId=${user.id}`);
         if (response.ok) {
           const data = await response.json();
-          // Clear localStorage and use database messages
-          if (data.messages) {
-            const store = useMessageStore.getState();
-            store.messages[chatbot.id] = data.messages;
+          // Use proper Zustand state update to prevent duplicates
+          if (data.messages && Array.isArray(data.messages)) {
+            const { messages: currentMessages } = useMessageStore.getState();
+            // Only update if messages are different (avoid unnecessary re-renders)
+            const currentChatMessages = currentMessages[chatbot.id] || [];
+            if (JSON.stringify(currentChatMessages) !== JSON.stringify(data.messages)) {
+              useMessageStore.setState((state) => ({
+                messages: {
+                  ...state.messages,
+                  [chatbot.id]: data.messages,
+                },
+              }));
+            }
           }
         }
       } catch (error) {
@@ -44,12 +53,8 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
       }
     };
 
-    // Load initially
+    // Load only once on mount
     loadMessages();
-
-    // Auto-refresh every 10 seconds to check for new automated messages
-    const interval = setInterval(loadMessages, 10000);
-    return () => clearInterval(interval);
   }, [user.id, chatbot.id]);
 
   // Check API status on component mount

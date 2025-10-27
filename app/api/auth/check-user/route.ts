@@ -10,31 +10,70 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    // Check if user exists in database
-    const { data: users, error } = await db
+    // First, try to find a patient in the users table
+    const { data: patients, error: patientError } = await db
       .from('users')
       .select(`
         user_id,
         first_name,
         last_name,
         email,
-        login_credentials!inner(user_type, account_status)
+        phone,
+        birth_date,
+        gender,
+        address
       `)
-      .eq('email', email)
-      .eq('login_credentials.user_type', 'Elder')
-      .eq('login_credentials.account_status', 'Active');
+      .eq('email', email);
 
-    if (error) throw error;
-
-    if (users && users.length > 0) {
-      const user = users[0];
+    if (!patientError && patients && patients.length > 0) {
+      const patient = patients[0];
       return NextResponse.json({
         user: {
-          id: user.user_id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          name: `${user.first_name} ${user.last_name}`,
+          id: patient.user_id,
+          email: patient.email,
+          firstName: patient.first_name,
+          lastName: patient.last_name,
+          name: `${patient.first_name} ${patient.last_name}`,
+          userType: 'Elder',
+          phone: patient.phone,
+          birthDate: patient.birth_date,
+          gender: patient.gender,
+          address: patient.address,
+        },
+      });
+    }
+
+    // If not found in users, try to find a doctor in the doctors table
+    const { data: doctors, error: doctorError } = await db
+      .from('doctors')
+      .select(`
+        doctor_id,
+        name,
+        email,
+        speciality,
+        phone,
+        hospital
+      `)
+      .eq('email', email);
+
+    if (!doctorError && doctors && doctors.length > 0) {
+      const doctor = doctors[0];
+      // Parse doctor name (assuming format "Dr. FirstName LastName")
+      const nameParts = doctor.name.split(' ');
+      const firstName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : doctor.name;
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+
+      return NextResponse.json({
+        user: {
+          id: doctor.doctor_id,
+          email: doctor.email,
+          firstName: firstName,
+          lastName: lastName,
+          name: doctor.name,
+          userType: 'Doctor',
+          phone: doctor.phone,
+          speciality: doctor.speciality,
+          hospital: doctor.hospital,
         },
       });
     }

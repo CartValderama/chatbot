@@ -4,11 +4,15 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
+  name?: string;
+  userType: 'Elder' | 'Doctor';
   phone?: string;
   birthDate?: string;
   gender?: 'Male' | 'Female' | 'Other';
   address?: string;
   primaryDoctorId?: number;
+  speciality?: string; // For doctors
+  hospital?: string; // For doctors
 }
 
 // Medicine types

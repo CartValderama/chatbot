@@ -20,7 +20,23 @@ export default function LoginForm() {
     try {
       const success = await login(email, password)
       if (success) {
-        router.push('/dashboard')
+        // Get the user from localStorage to check their type
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          const user = JSON.parse(storedUser)
+          // Redirect based on user type
+          if (user.userType === 'Elder') {
+            router.push('/chatbot')
+          } else if (user.userType === 'Doctor') {
+            router.push('/dashboard')
+          } else {
+            // Default fallback
+            router.push('/dashboard')
+          }
+        } else {
+          // Fallback if no user found
+          router.push('/dashboard')
+        }
       } else {
         setError('Invalid email or password. Please ensure password is at least 6 characters.')
       }
@@ -40,7 +56,7 @@ export default function LoginForm() {
               Medication Reminder
             </h2>
             <p className="text-gray-600">
-              Sign in to manage your medications
+              Sign in as a patient or healthcare provider
             </p>
           </div>
 
@@ -98,22 +114,45 @@ export default function LoginForm() {
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-700 mb-3">Available Patients:</p>
-              <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 space-y-2">
-                <div>
-                  <p className="font-semibold text-gray-800">Anna Hansen</p>
-                  <p className="font-mono text-xs">anna.hansen@email.no</p>
+              <p className="text-sm font-medium text-gray-700 mb-3">Available Accounts:</p>
+
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-indigo-600 mb-2">PATIENTS (directed to chatbot):</p>
+                <div className="bg-indigo-50 rounded-lg p-3 text-sm text-gray-600 space-y-2">
+                  <div>
+                    <p className="font-semibold text-gray-800">Anna Hansen</p>
+                    <p className="font-mono text-xs">anna.hansen@email.no</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Per Olsen</p>
+                    <p className="font-mono text-xs">per.olsen@email.no</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Kari Larsen</p>
+                    <p className="font-mono text-xs">kari.larsen@email.no</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Per Olsen</p>
-                  <p className="font-mono text-xs">per.olsen@email.no</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-800">Kari Larsen</p>
-                  <p className="font-mono text-xs">kari.larsen@email.no</p>
-                </div>
-                <p className="text-xs text-gray-500 pt-2">Password: password123 (any password works)</p>
               </div>
+
+              <div>
+                <p className="text-xs font-semibold text-green-600 mb-2">DOCTORS/NURSES (directed to dashboard):</p>
+                <div className="bg-green-50 rounded-lg p-3 text-sm text-gray-600 space-y-2">
+                  <div>
+                    <p className="font-semibold text-gray-800">Dr. Sarah Johnson</p>
+                    <p className="font-mono text-xs">sarah.johnson@hospital.no</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Dr. Michael Chen</p>
+                    <p className="font-mono text-xs">michael.chen@hospital.no</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Dr. Emma Wilson</p>
+                    <p className="font-mono text-xs">emma.wilson@hospital.no</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-3">Any password works (min 6 characters)</p>
             </div>
           </div>
         </div>

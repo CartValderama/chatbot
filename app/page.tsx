@@ -11,7 +11,12 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.push('/dashboard')
+        // Redirect based on user type
+        if (user.userType === 'Elder') {
+          router.push('/chatbot')
+        } else {
+          router.push('/dashboard')
+        }
       } else {
         router.push('/login')
       }

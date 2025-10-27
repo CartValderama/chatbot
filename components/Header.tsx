@@ -42,34 +42,68 @@ export function Header() {
   const isChatbotPage = pathname?.startsWith("/chatbot");
   const isAdminPage = pathname?.startsWith("/admin");
   const isDashboardPage = pathname === "/dashboard";
+  const isPatient = user.userType === 'Elder';
+  const isDoctor = user.userType === 'Doctor';
+
+  // Determine home page based on user type
+  const homePage = isPatient ? '/chatbot' : '/dashboard';
+
+  // Determine if we should show back button and what text
+  const showBackButton = () => {
+    if (isPatient) {
+      // For patients: only show back button on dashboard (not on chatbot)
+      if (isDashboardPage) {
+        return { show: true, text: 'Back to Chat' };
+      }
+      return { show: false, text: '' };
+    } else {
+      // For doctors: show back button on chatbot and admin pages
+      if (isChatbotPage || isAdminPage) {
+        return { show: true, text: 'Back to Dashboard' };
+      }
+      return { show: false, text: '' };
+    }
+  };
+
+  const backButtonConfig = showBackButton();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          {isChatbotPage || isAdminPage ? (
+          {backButtonConfig.show ? (
             <Button
               variant="ghost"
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push(homePage)}
               className="gap-2 p-0"
             >
               <ArrowLeftIcon />
-              Back to Dashboard
+              {backButtonConfig.text}
             </Button>
           ) : (
-            <Link href="/dashboard" className="flex items-center space-x-2">
+            <Link href={homePage} className="flex items-center space-x-2">
               <span className="font-bold">CareBuddy</span>
             </Link>
           )}
         </div>
 
         <div className="flex items-center gap-4">
-          {!pathname?.startsWith("/admin") && (
+          {/* Only show admin panel button for doctors */}
+          {isDoctor && !pathname?.startsWith("/admin") && (
             <Button
               variant="outline"
               onClick={() => router.push("/admin")}
             >
               Admin Panel
+            </Button>
+          )}
+          {/* Show medications link for patients when on chatbot page */}
+          {isPatient && isChatbotPage && (
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard")}
+            >
+              My Medications
             </Button>
           )}
           <DropdownMenu>
