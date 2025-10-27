@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MedicationService } from '@/lib/services/medication-service';
 import { MedicationReminder } from '@/lib/types/types';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,15 @@ export default function MedicationNotifications({ userId }: MedicationNotificati
   const [upcomingReminders, setUpcomingReminders] = useState<MedicationReminder[]>([]);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const lastPlayedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    // Initialize Audio Context
+    if (typeof window !== 'undefined' && !audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+
     // Request notification permission
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
@@ -32,6 +39,70 @@ export default function MedicationNotifications({ userId }: MedicationNotificati
 
     return () => clearInterval(interval);
   }, [userId]);
+
+  // Function to play a pleasant notification sound
+  const playNotificationSound = () => {
+    if (!audioContextRef.current) return;
+
+    const audioContext = audioContextRef.current;
+    const now = audioContext.currentTime;
+
+    // Create a gentle, pleasant notification sound (three tones)
+    const oscillator1 = audioContext.createOscillator();
+    const oscillator2 = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    // Connect oscillators to gain node and gain node to output
+    oscillator1.connect(gainNode);
+    oscillator2.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Set up pleasant tones (C5 and E5 for a harmonious sound)
+    oscillator1.frequency.setValueAtTime(523.25, now); // C5
+    oscillator2.frequency.setValueAtTime(659.25, now); // E5
+    oscillator1.type = 'sine';
+    oscillator2.type = 'sine';
+
+    // Create a gentle fade in and fade out
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
+    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.4);
+    gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
+
+    // Play the sound
+    oscillator1.start(now);
+    oscillator2.start(now);
+
+    // First tone
+    oscillator1.stop(now + 0.3);
+    oscillator2.stop(now + 0.3);
+
+    // Second tone (slightly higher)
+    setTimeout(() => {
+      const osc3 = audioContext.createOscillator();
+      const osc4 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+
+      osc3.connect(gain2);
+      osc4.connect(gain2);
+      gain2.connect(audioContext.destination);
+
+      osc3.frequency.setValueAtTime(587.33, audioContext.currentTime); // D5
+      osc4.frequency.setValueAtTime(783.99, audioContext.currentTime); // G5
+      osc3.type = 'sine';
+      osc4.type = 'sine';
+
+      const now2 = audioContext.currentTime;
+      gain2.gain.setValueAtTime(0, now2);
+      gain2.gain.linearRampToValueAtTime(0.3, now2 + 0.1);
+      gain2.gain.linearRampToValueAtTime(0, now2 + 0.4);
+
+      osc3.start(now2);
+      osc4.start(now2);
+      osc3.stop(now2 + 0.4);
+      osc4.stop(now2 + 0.4);
+    }, 400);
+  };
 
   const checkUpcomingReminders = async () => {
     try {
@@ -63,13 +134,29 @@ export default function MedicationNotifications({ userId }: MedicationNotificati
 
       setUpcomingReminders(newReminders);
 
-      // Send browser notifications for new reminders
-      if (notificationPermission === 'granted' && newReminders.length > 0) {
-        newReminders.forEach((reminder) => {
-          if (!dismissedIds.has(reminder.id)) {
-            sendBrowserNotification(reminder);
-          }
-        });
+      // Send browser notifications and play sound for new reminders
+      if (newReminders.length > 0) {
+        // Check if there are any truly new reminders (not played before)
+        const hasNewReminders = newReminders.some((r) => !lastPlayedRef.current.has(r.id));
+
+        if (hasNewReminders) {
+          // Play notification sound for new reminders
+          playNotificationSound();
+
+          // Mark reminders as played
+          newReminders.forEach((r) => {
+            lastPlayedRef.current.add(r.id);
+          });
+        }
+
+        // Send browser notifications
+        if (notificationPermission === 'granted') {
+          newReminders.forEach((reminder) => {
+            if (!dismissedIds.has(reminder.id)) {
+              sendBrowserNotification(reminder);
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error checking upcoming reminders:', error);
@@ -125,6 +212,8 @@ export default function MedicationNotifications({ userId }: MedicationNotificati
       await MedicationService.updateReminderStatus(reminderId, 'Acknowledged');
       setDismissedIds((prev) => new Set(prev).add(reminderId));
       setUpcomingReminders((prev) => prev.filter((r) => r.id !== reminderId));
+      // Clean up played tracking
+      lastPlayedRef.current.delete(reminderId);
     } catch (error) {
       console.error('Error acknowledging reminder:', error);
     }
@@ -133,6 +222,8 @@ export default function MedicationNotifications({ userId }: MedicationNotificati
   const handleDismiss = (reminderId: string) => {
     setDismissedIds((prev) => new Set(prev).add(reminderId));
     setUpcomingReminders((prev) => prev.filter((r) => r.id !== reminderId));
+    // Clean up played tracking
+    lastPlayedRef.current.delete(reminderId);
   };
 
   const formatTime = (dateTime: string) => {

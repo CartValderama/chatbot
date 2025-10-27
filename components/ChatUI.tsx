@@ -26,7 +26,7 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load messages from database on mount only (no auto-refresh to prevent duplicates)
+  // Load messages from database on mount and periodically check for new automated messages
   useEffect(() => {
     const loadMessages = async () => {
       try {
@@ -36,9 +36,11 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
           // Use proper Zustand state update to prevent duplicates
           if (data.messages && Array.isArray(data.messages)) {
             const { messages: currentMessages } = useMessageStore.getState();
-            // Only update if messages are different (avoid unnecessary re-renders)
+            // Only update if we have new messages from the database
             const currentChatMessages = currentMessages[chatbot.id] || [];
-            if (JSON.stringify(currentChatMessages) !== JSON.stringify(data.messages)) {
+
+            // Check if there are actually new messages (database has more messages)
+            if (data.messages.length > currentChatMessages.length) {
               useMessageStore.setState((state) => ({
                 messages: {
                   ...state.messages,
@@ -53,8 +55,12 @@ export default function ChatUI({ chatbot, user }: ChatUIProps) {
       }
     };
 
-    // Load only once on mount
+    // Load initially
     loadMessages();
+
+    // Auto-refresh every 30 seconds to check for new automated messages (like medication reminders)
+    const interval = setInterval(loadMessages, 30000);
+    return () => clearInterval(interval);
   }, [user.id, chatbot.id]);
 
   // Check API status on component mount

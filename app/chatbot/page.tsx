@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import ChatUI from "@/components/ChatUI";
 import { Header } from "@/components/Header";
+import MedicationNotifications from "@/components/MedicationNotifications";
 
 function ChatbotContent() {
   const { user } = useAuth();
@@ -20,6 +21,8 @@ function ChatbotContent() {
   if (!user) {
     return null;
   }
+
+  const isPatient = user.userType === 'Elder';
 
   // Create a simple medication chatbot config
   const medicationChatbot = {
@@ -39,6 +42,9 @@ function ChatbotContent() {
           <ChatUI chatbot={medicationChatbot} user={user} />
         </div>
       </main>
+
+      {/* Floating notification system - only for patients */}
+      {isPatient && <MedicationNotifications userId={user.id} />}
     </div>
   );
 }
