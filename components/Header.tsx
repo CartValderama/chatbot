@@ -100,9 +100,10 @@ export function Header() {
           {/* Show medications link for patients when on chatbot page */}
           {isPatient && isChatbotPage && (
             <Button
-              variant="outline"
               onClick={() => router.push("/dashboard")}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold px-5 py-5 text-base shadow-md hover:shadow-lg transition-all duration-200 border-0"
             >
+              <span className="text-xl mr-2">💊</span>
               My Medications
             </Button>
           )}

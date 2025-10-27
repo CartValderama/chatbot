@@ -124,8 +124,12 @@ export default function MedicationDashboard({ userId }: MedicationDashboardProps
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold text-gray-900">Today's Reminders</h3>
           <Link href="/chatbot">
-            <Button variant="outline" size="sm">
-              Ask Chatbot
+            <Button
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold px-6 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-200 border-0"
+              size="lg"
+            >
+              <span className="text-2xl mr-3">🤖</span>
+              Ask Your Assistant
             </Button>
           </Link>
         </div>
